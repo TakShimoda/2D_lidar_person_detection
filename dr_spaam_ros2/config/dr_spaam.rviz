@@ -62,6 +62,26 @@ Visualization Manager:
       Namespaces:
         dr_spaam_ros2: true
       Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Instance points
+      Enabled: true
+      Topic:
+        Value: /dr_spaam_ros2_node/instance_points
+        Depth: 5
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+      Style: Spheres
+      Size (m): 0.06
+      # Colour each point by which detection it belongs to. RViz's intensity
+      # transformer reads any float field, so the per-person id shades them.
+      Color Transformer: Intensity
+      Channel Name: instance
+      Autocompute Intensity Bounds: true
+      Use rainbow: true
+      Alpha: 1
+      Decay Time: 0
+      Value: true
     - Class: rviz_default_plugins/Image
       Name: Camera
       Enabled: true

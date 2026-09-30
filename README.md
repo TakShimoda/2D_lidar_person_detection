@@ -162,6 +162,30 @@ parameter is needed.
 | `/scan` (configurable) | `sensor_msgs/LaserScan` | Input. |
 | `/dr_spaam_ros2_node/detections` | `geometry_msgs/PoseArray` | One pose per person, `z = 0`, orientation unset. |
 | `/dr_spaam_ros2_node/rviz_marker` | `visualization_msgs/Marker` | `LINE_LIST` drawing a 0.4 m circle per detection. |
+| `/dr_spaam_ros2_node/instance_points` | `sensor_msgs/PointCloud2` | The scan points backing each detection: `x`, `y`, `z`, and an `instance` field indexing `detections`. |
+
+#### Instance points
+
+DR-SPAAM regresses a centre offset per scan point and groups the votes with NMS. Only the
+grouped centres come back from `Detector.__call__`'s first two return values; the third,
+`instance_mask`, records which cluster each point fell into, and the node republishes it as
+a point cloud. `instance == i` means the point voted for `detections.poses[i]`; points in
+no surviving cluster are omitted.
+
+This is the per-person point membership, which is what you need to estimate **orientation** --
+the network does not predict it (the regression head is `Conv1d(128, 2)`, just `dx, dy`).
+Fitting an axis to a person's leg points gives a heading up to a 180-degree ambiguity,
+which tracking resolves.
+
+Two details about the raw mask, both handled by the node but worth knowing if you use
+`instance_mask` directly:
+
+- Ids are assigned over **every** NMS cluster in descending-confidence order, not just the
+  ones above `conf_thresh`. A typical frame has ~170 ids for ~11 published detections.
+- The j-th detection the detector returns owns the points marked **j + 1**. Verified
+  against a control: points marked `j+1` sit 0.192 m from detection j's centre on average,
+  versus ~3.5 m for `j`, `j+2` or `j+5`. The node renumbers them onto the published
+  detections, so `instance` is a direct index into `poses`.
 
 Both outputs copy the input scan's header, so they share its `frame_id` and stamp.
 

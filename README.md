@@ -106,17 +106,35 @@ setuptools removed in 80, and the venv ships a newer setuptools than the system 
 
 ## Running
 
-Every shell that runs the node needs the environment:
+Every shell that runs the node needs the environment (adds venv to the PYTHONPATH without sourcing it which conflicts with colcon):
 
 ```bash
 source ~/Documents/2D_lidar_person_detection/dr_spaam_env.sh
 ```
 
-Then:
+Then run the following commands:
 
+1. Run the DR-SPAAM node:
 ```bash
 ros2 launch dr_spaam_ros2 dr_spaam_ros2.launch.py
 ```
+2. Run the publisher script to publish the camera/LiDAR:
+```bash
+python3 tools/jrdb_bag_scan_publisher.py ~/Documents/JRDB/train_dataset_with_activity/rosbags/memorial-court-2019-03-16_0.bag  --camera 0 --loop
+```
+3. Run rviz:
+```bash
+rviz2 -d ~/Documents/dr_spaam_ws/install/dr_spaam_ros2/share/dr_spaam_ros2/config/dr_spaam.rviz
+```
+4. (For now) run tf2 to get the transform to ```base_link```:
+```bash
+ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --yaw 0 --pitch 0 --roll 0 --frame-id base_link --child-frame-id laser
+```
+5. (Optional) To monitor topics with ros2_pulse:
+```
+pulse-top
+```
+- Note, to run this, the first two commands above processes that publish/subscribe to the topics you want to monitor must run with ```pulse``` before them. e.g. ```pulse ros2 launch dr_spaam_ros2 dr_spaam_ros2.launch.py```
 
 Override the defaults by exporting before sourcing: `DRS_ROS_DISTRO`, `DRS_REPO`, `DRS_WS`,
 `DRS_VENV`.

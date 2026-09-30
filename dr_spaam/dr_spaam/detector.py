@@ -57,8 +57,31 @@ class Detector(object):
             torch.backends.cudnn.benchmark = True
             self._model = self._model.cuda()
 
-    def __call__(self, scan):
-        if self._scan_phi is None:
+    def __call__(self, scan, scan_phi=None):
+        """Run detection on a single scan.
+
+        Args:
+            scan (np.ndarray[N]): Range value of each ray.
+            scan_phi (np.ndarray[N]): Angle of each ray, in radians. Optional.
+                When omitted, the angles are derived from set_laser_fov(), which
+                assumes a symmetric field of view centered on zero. Pass the
+                angles the sensor actually reports (for a ROS LaserScan,
+                angle_min + i * angle_increment) when that assumption does not
+                hold, e.g. a scan whose first ray is not at -fov/2.
+
+        Returns:
+            dets_xy (np.ndarray[M, 2]), dets_cls (np.ndarray[M]),
+            instance_mask (np.ndarray[N])
+        """
+        if scan_phi is not None:
+            scan_phi = np.asarray(scan_phi, dtype=np.float32)
+            if scan_phi.shape != (len(scan),):
+                raise ValueError(
+                    "scan_phi must have one angle per range value, got "
+                    "{} for a scan of length {}.".format(scan_phi.shape, len(scan))
+                )
+            self._scan_phi = scan_phi
+        elif self._scan_phi is None:
             assert self.is_ready(), "Call set_laser_fov() first."
             half_fov_rad = 0.5 * np.deg2rad(self._laser_fov_deg)
             self._scan_phi = np.linspace(

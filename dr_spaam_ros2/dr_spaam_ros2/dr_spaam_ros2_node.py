@@ -13,7 +13,7 @@ class DrSpaamROS2(Node):
     """ROS2 node to detect pedestrians using DROW3 or DR-SPAAM."""
 
     def __init__(self):
-        super().__init__("dr_spaam_ros2")
+        super().__init__("dr_spaam_ros2_node")
 
         # Declare parameters
         self.declare_parameter("weight_file", "")

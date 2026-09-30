@@ -1,0 +1,106 @@
+# RViz2 config for DR-SPAAM. Open with:
+#   rviz2 -d <this file>
+#
+# Fixed Frame is set to the scan's own frame, so no TF tree is required. The JRDB
+# bags publish in base_link; if your LiDAR uses a different frame_id, change it
+# here (or in the GUI) to match:
+#   ros2 topic echo /scan --field header.frame_id --once
+#
+# The Image display shows /camera/image, which tools/jrdb_bag_scan_publisher.py
+# publishes with --camera N. RViz opens it as a dock panel; drag it to the right
+# edge once and File > Save Config to keep that layout.
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+    Tree Height: 600
+  - Class: rviz_common/Views
+    Name: Views
+  - Class: rviz_default_plugins/Image
+    Name: Camera
+    Value: true
+Visualization Manager:
+  Class: ""
+  Name: root
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane: XY
+      Plane Cell Count: 40
+      Color: 100; 100; 100
+      Alpha: 0.4
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz_default_plugins/LaserScan
+      Name: Scan
+      Enabled: true
+      Topic:
+        Value: /scan
+        Depth: 5
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+      Style: Points
+      Size (Pixels): 3
+      Color Transformer: FlatColor
+      Color: 170; 170; 170
+      Alpha: 1
+      Decay Time: 0
+      Value: true
+    - Class: rviz_default_plugins/Marker
+      Name: Detections
+      Enabled: true
+      Topic:
+        Value: /dr_spaam_ros2_node/rviz_marker
+        Depth: 5
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+      Namespaces:
+        dr_spaam_ros2: true
+      Value: true
+    - Class: rviz_default_plugins/Image
+      Name: Camera
+      Enabled: true
+      Topic:
+        Value: /camera/image
+        Depth: 2
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Durability Policy: Volatile
+      Max Value: 1
+      Min Value: 0
+      Median window: 5
+      Normalize Range: true
+      Value: true
+  Global Options:
+    Fixed Frame: base_link
+    Background Color: 48; 48; 48
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/Measure
+      Line color: 128; 128; 0
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: TopDownOrtho
+      Target Frame: <Fixed Frame>
+      Scale: 40
+      X: 0
+      Y: 0
+      Angle: 0
+    Saved: ~
+Window Geometry:
+  Height: 800
+  Width: 1400
+  Displays:
+    collapsed: false
+  Camera:
+    collapsed: false
+  Views:
+    collapsed: false

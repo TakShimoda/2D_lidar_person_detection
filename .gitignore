@@ -32,3 +32,13 @@ results/
 result_*/
 wandb
 venv/
+
+# colcon build artifacts committed in the upstream fork; rebuilt per-machine and
+# tied to one Python version, so they must not be tracked
+dr_spaam_ros2/install/
+dr_spaam_ros2/log/
+log/
+
+# downloaded DR-SPAAM checkpoints (*.pth already ignored above, this keeps the
+# folder and its bundled readme.txt out too)
+dr_spaam_ros2/self_supervised_person_detection/

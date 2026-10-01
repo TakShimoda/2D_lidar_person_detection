@@ -112,7 +112,8 @@ Every shell that runs the node needs the environment (adds venv to the PYTHONPAT
 source ~/Documents/2D_lidar_person_detection/dr_spaam_env.sh
 ```
 
-Then run the following commands:
+### Running with the JRDB SICK lasers (that DR-SPAAM was trained on)
+Run the following commands:
 
 1. Run the DR-SPAAM node:
 ```bash
@@ -136,6 +137,28 @@ pulse-top
 ```
 - Note, to run this, the first two commands above processes that publish/subscribe to the topics you want to monitor must run with ```pulse``` before them. e.g. ```pulse ros2 launch dr_spaam_ros2 dr_spaam_ros2.launch.py```
 
+### Running with JRDB VLP-16 single ring scan
+
+First, install the velodyne-laserscan package:
+```
+sudo apt install ros-humble-velodyne-laserscan
+```
+- This extracts a single ring of a Velodyne PointCloud2 and publishes it as a LaserScan message. 
+
+1. Run the DR-SPAAM node, rviz, and tf2 above (1, 2, and 4). 
+- Also run the tf2 publisher between ```base_link``` and ```velodyne``` as the latter is the frame used for the velodyne-laserscan package to get scans. In rviz, the ```velodyne``` frame should be selected as the global frame.
+
+2. Run the scan publisher (there are more arguments like the sequence to use)
+```
+python3 tools/jrdb_scan_publisher.py --mode pointcloud --loop
+```
+3. Run the velodyne-laserscan node and publish to scan
+```
+ros2 run velodyne_laserscan velodyne_laserscan_node --ros-args -p ring:=8 -p resolution:=0.00576 -r velodyne_points:=/velodyne_points -r scan:=/scan
+```
+- Use ring 8 as it's angled at 1<sup>o</sup>, which is about horizontal. Resolution at 0.00576 overrides the default of 0.007, as this gives exactly 1091 rays exactly as in JRBD (0.00576*1091 = 6.28 rad, or 360<sup>o</sup>).
+
+### Other Notes
 Override the defaults by exporting before sourcing: `DRS_ROS_DISTRO`, `DRS_REPO`, `DRS_WS`,
 `DRS_VENV`.
 

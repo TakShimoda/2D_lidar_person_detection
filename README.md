@@ -444,6 +444,55 @@ Commands still run, but stderr is polluted for everything. And even when it does
 keeps up with most of it (~12.9 Hz of detections out of 14.7 Hz of scans on an RTX-class
 GPU); raise `stride` if your GPU falls further behind.
 
+### Single Velodyne ring, the way a real 3D LiDAR would be used
+
+A 3D LiDAR has no planar scan to give the detector, and there are two ways to make one.
+Collapsing a height band (the `slice` mode below) is the obvious choice and the wrong one:
+each ring is a cone centred on the sensor, so a horizontal slice cuts across every cone and
+only intersects the scene at discrete radii. Taking a **single ring** instead keeps the
+geometry intact -- the ring *is* a cone, sampled densely in azimuth, and its height drifts
+slowly with range instead of jumping.
+
+`velodyne_laserscan` does exactly that, so this tool can replay JRDB the way a VLP-16 feeds
+a real robot:
+
+```bash
+python3 tools/jrdb_scan_publisher.py --mode pointcloud --loop
+```
+
+```bash
+ros2 run velodyne_laserscan velodyne_laserscan_node --ros-args -p ring:=8 -p resolution:=0.00576 -r velodyne_points:=/velodyne_points -r scan:=/scan
+```
+
+Then launch the detector as usual. `resolution: 0.00576` rad makes the output exactly
+1091 rays over 360 degrees, matching what the JRDB checkpoints were trained on
+(the package default, 0.007, gives ~898). `ring: -1` auto-selects the middle ring.
+
+The cloud is published in the **sensor** frame, not base: `velodyne_laserscan` measures
+range from the cloud's origin, so re-framing it to `base_link` would move the origin and
+corrupt every range. Set the RViz fixed frame to `velodyne` for this mode.
+
+Measured on `bytes-cafe-2019-02-07_0`, 160 frames, `conf_thresh 0.8`, 0.5 m match radius:
+
+| source | recall | precision | recall < 4 m | recall > 4 m |
+|---|---|---|---|---|
+| height slice | 0.373 | 0.782 | **0.677** | 0.015 |
+| ring 8 (+1 deg) | **0.385** | 0.689 | 0.550 | **0.191** |
+| ring 5 (-5 deg) | 0.370 | 0.614 | 0.632 | 0.062 |
+| ring 3 (-9 deg) | 0.349 | 0.704 | 0.588 | 0.068 |
+
+The ring is **12x better past 4 m**, which is the range the slice simply cannot reach. It
+is worse close in, and that is a mounting-height problem rather than a method problem: on
+JackRabbot the lower Velodyne sits 0.80 m above the ground (ground is at base `z = -0.93`,
+the sensor at `-0.135`), so its near-horizontal ring cuts people at the hip. The 2D laser
+the checkpoints were trained on is at `z = -0.50`, i.e. **0.43 m above ground** -- knee
+height, which is what DROW and DR-SPAAM were designed for.
+
+**So on your own robot, mount height is the variable that matters.** A VLP-16 at ~0.3-0.5 m
+puts its horizontal ring at shin/knee height and should beat both rows above; the same
+sensor on a 1 m mast will not, and no choice of ring fixes it, because reaching knee height
+from up there means using a steeply tilted ring whose plane climbs with range.
+
 ### Replaying JRDB from point clouds (fallback)
 
 ```bash

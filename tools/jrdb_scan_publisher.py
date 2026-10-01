@@ -1,5 +1,29 @@
-"""Stream a JRDB sequence as sensor_msgs/LaserScan, synthesised from the Velodyne
-point clouds.
+"""Stream a JRDB sequence as a 2D scan, from the Velodyne point clouds.
+
+Two modes:
+
+  --mode slice       (default) collapse a horizontal band of the point cloud
+                     into a sensor_msgs/LaserScan here, in Python.
+
+  --mode pointcloud  republish the raw Velodyne as sensor_msgs/PointCloud2 with
+                     the `ring` field intact, and let the velodyne_laserscan
+                     node pull out a single ring. This is the mode that matches
+                     how you would run a real VLP-16:
+
+                       python3 tools/jrdb_scan_publisher.py --mode pointcloud --loop
+                       ros2 run velodyne_laserscan velodyne_laserscan_node --ros-args \
+                         -p ring:=8 -p resolution:=0.00576 \
+                         -r velodyne_points:=/velodyne_points -r scan:=/scan
+
+                     Measured on bytes-cafe-2019-02-07_0 (160 frames, conf 0.8),
+                     a single ring recovers the range the slice throws away:
+
+                       slice      recall 0.373  precision 0.782  >4 m 0.015
+                       ring 8     recall 0.385  precision 0.689  >4 m 0.191
+
+                     The slice is better close in and the ring is far better
+                     past 4 m, because a ring is a cone centred on the sensor
+                     while a slice cuts across every cone -- see the README.
 
     source dr_spaam_env.sh
     python3 tools/jrdb_scan_publisher.py --sequence bytes-cafe-2019-02-07_0
@@ -23,10 +47,12 @@ import argparse
 import glob
 import os
 
+import array
+
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from sensor_msgs.msg import LaserScan
+from sensor_msgs.msg import LaserScan, PointCloud2, PointField
 
 import dr_spaam.utils.jrdb_transforms as jt
 from dr_spaam.datahandle._pypcd import point_cloud_from_path
@@ -45,6 +71,57 @@ def load_velodyne_in_base(root, sequence, which, frame):
     if which == "lower":
         return jt.transform_pts_lower_velodyne_to_base(xyz)
     return jt.transform_pts_upper_velodyne_to_base(xyz)
+
+
+def load_velodyne_raw(root, sequence, which, frame):
+    """Raw Velodyne points in the SENSOR frame, with the ring index.
+
+    velodyne_laserscan measures range from the cloud's own origin, so the cloud
+    has to stay in the sensor frame -- transforming it to base would move the
+    origin and corrupt every range.
+    """
+    path = os.path.join(root, "pointclouds", which + "_velodyne", sequence,
+                        "{:06d}.pcd".format(frame))
+    pc = point_cloud_from_path(path).pc_data
+    xyz = np.stack([pc["x"], pc["y"], pc["z"]], axis=0).astype(np.float32)
+    inten = np.asarray(pc["intensity"], dtype=np.float32)
+    ring = np.asarray(pc["ring"], dtype=np.uint16)
+    keep = np.isfinite(xyz).all(axis=0)
+    return xyz[:, keep], inten[keep], ring[keep]
+
+
+# Packed layout; PointCloud2 addresses fields by offset so no padding is needed.
+_PC_DTYPE = np.dtype([("x", "<f4"), ("y", "<f4"), ("z", "<f4"),
+                      ("intensity", "<f4"), ("ring", "<u2")])
+_PC_FIELDS = [
+    PointField(name="x", offset=0, datatype=PointField.FLOAT32, count=1),
+    PointField(name="y", offset=4, datatype=PointField.FLOAT32, count=1),
+    PointField(name="z", offset=8, datatype=PointField.FLOAT32, count=1),
+    PointField(name="intensity", offset=12, datatype=PointField.FLOAT32, count=1),
+    # velodyne_laserscan requires a UINT16 field named exactly "ring".
+    PointField(name="ring", offset=16, datatype=PointField.UINT16, count=1),
+]
+
+
+def make_point_cloud(xyz, inten, ring, frame_id, stamp):
+    rec = np.empty(xyz.shape[1], dtype=_PC_DTYPE)
+    rec["x"], rec["y"], rec["z"] = xyz[0], xyz[1], xyz[2]
+    rec["intensity"], rec["ring"] = inten, ring
+
+    msg = PointCloud2()
+    msg.header.frame_id = frame_id
+    msg.header.stamp = stamp
+    msg.height = 1
+    msg.width = rec.shape[0]
+    msg.fields = _PC_FIELDS
+    msg.is_bigendian = False
+    msg.point_step = _PC_DTYPE.itemsize
+    msg.row_step = msg.point_step * msg.width
+    msg.is_dense = True
+    # array.array, not bytes: rclpy validates sequence fields element by element
+    # otherwise, which costs ~100 ms for a cloud this size.
+    msg.data = array.array("B", rec.tobytes())
+    return msg
 
 
 def pointcloud_to_scan(root, sequence, frame, band, use_upper):
@@ -74,12 +151,25 @@ class JrdbScanPublisher(Node):
         self._args = args
         self._frames = frames
         self._i = 0
-        self._pub = self.create_publisher(LaserScan, args.topic, 10)
+        if args.mode == "pointcloud":
+            self._pub = self.create_publisher(PointCloud2, args.cloud_topic, 10)
+            self.get_logger().info(
+                "{}: {} frames, raw {} velodyne as PointCloud2 on {} "
+                "(frame '{}'), {} Hz".format(
+                    args.sequence, len(frames), args.which, args.cloud_topic,
+                    args.cloud_frame_id, args.rate))
+            self.get_logger().info(
+                "run velodyne_laserscan to pull out a ring, e.g. ring 8 (+1 deg):"
+                "  ros2 run velodyne_laserscan velodyne_laserscan_node --ros-args "
+                "-p ring:=8 -p resolution:=0.00576 "
+                "-r velodyne_points:={} -r scan:=/scan".format(args.cloud_topic))
+        else:
+            self._pub = self.create_publisher(LaserScan, args.topic, 10)
+            self.get_logger().info(
+                "{}: {} frames, band +-{:.2f} m, upper={}, {} Hz on {}".format(
+                    args.sequence, len(frames), args.band, args.use_upper,
+                    args.rate, args.topic))
         self.create_timer(1.0 / args.rate, self._tick)
-        self.get_logger().info(
-            "{}: {} frames, band +-{:.2f} m, upper={}, {} Hz on {}".format(
-                args.sequence, len(frames), args.band, args.use_upper,
-                args.rate, args.topic))
 
     def _tick(self):
         if self._i >= len(self._frames):
@@ -89,9 +179,18 @@ class JrdbScanPublisher(Node):
             self._i = 0
         frame = self._frames[self._i]
         self._i += 1
+        a = self._args
 
-        scan = pointcloud_to_scan(self._args.root, self._args.sequence, frame,
-                                  self._args.band, self._args.use_upper)
+        if a.mode == "pointcloud":
+            xyz, inten, ring = load_velodyne_raw(a.root, a.sequence, a.which, frame)
+            self._pub.publish(make_point_cloud(
+                xyz, inten, ring, a.cloud_frame_id, self.get_clock().now().to_msg()))
+            if frame % 50 == 0:
+                self.get_logger().info("frame {:06d}  {} points, rings {}-{}".format(
+                    frame, xyz.shape[1], int(ring.min()), int(ring.max())))
+            return
+
+        scan = pointcloud_to_scan(a.root, a.sequence, frame, a.band, a.use_upper)
 
         msg = LaserScan()
         msg.header.frame_id = self._args.frame_id
@@ -126,7 +225,18 @@ def main():
     p.add_argument("--count", type=int, default=0, help="0 = to the end")
     p.add_argument("--loop", action="store_true")
     p.add_argument("--topic", default="/scan")
-    p.add_argument("--frame-id", default="base_link")
+    p.add_argument("--frame-id", default="base_link",
+                   help="frame_id for the LaserScan in slice mode")
+    p.add_argument("--mode", choices=("slice", "pointcloud"), default="slice",
+                   help="slice: collapse a height band to a LaserScan here. "
+                        "pointcloud: republish the raw Velodyne so "
+                        "velodyne_laserscan can extract one ring (default slice)")
+    p.add_argument("--which", choices=("lower", "upper"), default="lower",
+                   help="which Velodyne to republish in pointcloud mode")
+    p.add_argument("--cloud-topic", default="/velodyne_points")
+    p.add_argument("--cloud-frame-id", default="velodyne",
+                   help="frame_id for the cloud; it stays in the SENSOR frame, "
+                        "because velodyne_laserscan measures range from the origin")
     args = p.parse_args()
 
     seq_dir = os.path.join(args.root, "pointclouds", "lower_velodyne", args.sequence)

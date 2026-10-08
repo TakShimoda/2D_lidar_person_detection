@@ -15,8 +15,9 @@
 *.yml
 
 .idea/
-# .vscode/
+.vscode/
 *.egg-info/
+*.json
 build/
 ckpt/
 ckpts/

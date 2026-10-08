@@ -220,7 +220,7 @@ def main():
                    help="half-thickness of the slice, metres (default 0.10)")
     p.add_argument("--use-upper", action="store_true",
                    help="also slice the upper velodyne (measured slightly worse)")
-    p.add_argument("--rate", type=float, default=7.5, help="Hz (JRDB records ~7.5)")
+    p.add_argument("--rate", type=float, default=14.4, help="Hz (JRDB records ~14.77)")
     p.add_argument("--start", type=int, default=0)
     p.add_argument("--count", type=int, default=0, help="0 = to the end")
     p.add_argument("--loop", action="store_true")

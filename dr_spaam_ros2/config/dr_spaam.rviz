@@ -1,126 +1,201 @@
-# RViz2 config for DR-SPAAM. Open with:
-#   rviz2 -d <this file>
-#
-# Fixed Frame is set to the scan's own frame, so no TF tree is required. The JRDB
-# bags publish in base_link; if your LiDAR uses a different frame_id, change it
-# here (or in the GUI) to match:
-#   ros2 topic echo /scan --field header.frame_id --once
-#
-# The Image display shows /camera/image, which tools/jrdb_bag_scan_publisher.py
-# publishes with --camera N. RViz opens it as a dock panel; drag it to the right
-# edge once and File > Save Config to keep that layout.
 Panels:
   - Class: rviz_common/Displays
+    Help Height: 70
     Name: Displays
     Property Tree Widget:
-      Expanded: ~
-    Tree Height: 600
+      Expanded:
+        - /Global Options1
+        - /TF1
+      Splitter Ratio: 0.5
+    Tree Height: 325
   - Class: rviz_common/Views
+    Expanded:
+      - /Current View1
     Name: Views
+    Splitter Ratio: 0.5
   - Class: rviz_default_plugins/Image
     Name: Camera
     Value: true
 Visualization Manager:
   Class: ""
-  Name: root
   Displays:
-    - Class: rviz_default_plugins/Grid
-      Name: Grid
-      Enabled: true
+    - Alpha: 0.4000000059604645
       Cell Size: 1
+      Class: rviz_default_plugins/Grid
+      Color: 100; 100; 100
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
       Plane: XY
       Plane Cell Count: 40
-      Color: 100; 100; 100
-      Alpha: 0.4
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: rviz_default_plugins/LaserScan
-      Name: Scan
+    - Alpha: 1
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/LaserScan
+      Color: 170; 170; 170
+      Color Transformer: FlatColor
+      Decay Time: 0
       Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Scan
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Points
       Topic:
-        Value: /scan
         Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Durability Policy: Volatile
-      Style: Points
-      Size (Pixels): 3
-      Color Transformer: FlatColor
-      Color: 170; 170; 170
-      Alpha: 1
-      Decay Time: 0
+        Value: /scan
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
     - Class: rviz_default_plugins/Marker
-      Name: Detections
       Enabled: true
-      Topic:
-        Value: /dr_spaam_ros2_node/rviz_marker
-        Depth: 5
-        History Policy: Keep Last
-        Reliability Policy: Best Effort
-        Durability Policy: Volatile
+      Name: Detections
       Namespaces:
         dr_spaam_ros2: true
-      Value: true
-    - Class: rviz_default_plugins/PointCloud2
-      Name: Instance points
-      Enabled: true
       Topic:
-        Value: /dr_spaam_ros2_node/instance_points
         Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Durability Policy: Volatile
-      Style: Spheres
-      Size (m): 0.06
-      # Colour each point by which detection it belongs to. RViz's intensity
-      # transformer reads any float field, so the per-person id shades them.
-      Color Transformer: Intensity
-      Channel Name: instance
+        Value: /dr_spaam_ros2_node/rviz_marker
+      Value: true
+    - Alpha: 1
       Autocompute Intensity Bounds: true
-      Use rainbow: true
-      Alpha: 1
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: instance
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: Intensity
       Decay Time: 0
+      Enabled: true
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 2
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Instance points
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.05999999865889549
+      Style: Spheres
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /dr_spaam_ros2_node/instance_points
+      Use Fixed Frame: true
+      Use rainbow: true
       Value: true
     - Class: rviz_default_plugins/Image
-      Name: Camera
       Enabled: true
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: Camera
+      Normalize Range: true
       Topic:
-        Value: /camera/image
         Depth: 2
+        Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Durability Policy: Volatile
-      Max Value: 1
-      Min Value: 0
-      Median window: 5
-      Normalize Range: true
+        Value: /camera/image
       Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        base_link:
+          Value: true
+        laser:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        base_link:
+          laser:
+            {}
+      Update Interval: 0
+      Value: true
+  Enabled: true
   Global Options:
-    Fixed Frame: base_link
     Background Color: 48; 48; 48
+    Fixed Frame: base_link
     Frame Rate: 30
+  Name: root
   Tools:
     - Class: rviz_default_plugins/MoveCamera
     - Class: rviz_default_plugins/Select
     - Class: rviz_default_plugins/Measure
       Line color: 128; 128; 0
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
   Views:
     Current:
+      Angle: 0
       Class: rviz_default_plugins/TopDownOrtho
-      Name: TopDownOrtho
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Scale: 56.51243209838867
       Target Frame: <Fixed Frame>
-      Scale: 40
+      Value: TopDownOrtho (rviz_default_plugins)
       X: 0
       Y: 0
-      Angle: 0
     Saved: ~
 Window Geometry:
-  Height: 800
-  Width: 1400
-  Displays:
-    collapsed: false
   Camera:
     collapsed: false
+  Displays:
+    collapsed: false
+  Height: 1376
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000100000000000001cb00000506fc0200000004fb0000000c00430061006d006500720061010000003d0000010f0000002800fffffffb000000100044006900730070006c0061007900730100000152000001c8000000c900fffffffb0000000a0056006900650077007301000003200000012d000000a400fffffffb0000000c00430061006d0065007200610100000453000000f00000006e00ffffff000007e90000050600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
+  Width: 2490
+  X: 70
+  Y: 27

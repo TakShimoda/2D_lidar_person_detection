@@ -19,7 +19,7 @@ fi
 
 _drs_distro="${DRS_ROS_DISTRO:-humble}"
 _drs_repo="${DRS_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
-_drs_ws="${DRS_WS:-$HOME/Documents/dr_spaam_ws}"
+_drs_ws="${DRS_WS:-$HOME/Documents/VPT_ws}"
 _drs_venv="${DRS_VENV:-$HOME/venvs/torch}"
 
 # 1. ROS 2 underlay -----------------------------------------------------------

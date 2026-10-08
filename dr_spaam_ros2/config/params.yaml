@@ -5,5 +5,5 @@ dr_spaam_ros2_node:
     conf_thresh: 0.8
     stride: 1
     panoramic_scan: true
-    scan_topic: "/scan"
+    scan_topic: "/scan" #"/j100_0565/sensors/lidar3d_0/scan"
     gpu: true

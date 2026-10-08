@@ -127,6 +127,7 @@ python3 tools/jrdb_bag_scan_publisher.py ~/Documents/JRDB/train_dataset_with_act
 ```bash
 rviz2 -d ~/Documents/dr_spaam_ws/install/dr_spaam_ros2/share/dr_spaam_ros2/config/dr_spaam.rviz
 ```
+- or it could be under VPT_ws instead of dr_spaam_ws to work with other ROS2 packages.
 4. (For now) run tf2 to get the transform to ```base_link```:
 ```bash
 ros2 run tf2_ros static_transform_publisher --x 0 --y 0 --z 0 --yaw 0 --pitch 0 --roll 0 --frame-id base_link --child-frame-id laser
@@ -157,6 +158,44 @@ python3 tools/jrdb_scan_publisher.py --mode pointcloud --loop
 ros2 run velodyne_laserscan velodyne_laserscan_node --ros-args -p ring:=8 -p resolution:=0.00576 -r velodyne_points:=/velodyne_points -r scan:=/scan
 ```
 - Use ring 8 as it's angled at 1<sup>o</sup>, which is about horizontal. Resolution at 0.00576 overrides the default of 0.007, as this gives exactly 1091 rays exactly as in JRBD (0.00576*1091 = 6.28 rad, or 360<sup>o</sup>).
+
+4. (Optional) run the ros2 bag just for the image to view it along with the people detections
+```
+ros2 bag play /home/glenn/Documents/JRDB/ros2bags/memorial-court-2019-03-16_0/memorial-court-2019-03-16_0.db3
+```
+- Note. This won't be synchronized with the laser unless it's played back with the launch file. Also, each ros1 bag will have to be converted for each sequence
+
+### Running either setup with one launch file
+Source dr_spaam_env.sh first, then run 
+```
+ros2 launch dr_spaam_ros2 dr_spaam_ros2_JRDB.launch.py
+```
+- arguments are:
+  - ```use_sick``` - whether to use sick LiDAR or VLP16 (default false). If it's false, it'll use the VLP16 lower scan, use the velodyne_laserscan node, and play back the ros2 bag file just for the image. In this case, only the memorial-court sequence has a ros2 bag, and it'll have to be viewed in ```rqt_image_view``` since rviz is setup for a ```sensor_msg/Image``` type and not ```sensor_msg/CompressedImage```
+  - ```bag_file``` - name of the sequence for both laser and image playback
+- note: it's preferred to playback the lower VLP-16 pointcloud scans directly from the bag, as jrdb_scan_publisher.py uses a constant rate, while playing back from the bag gets the actual rate with timestamps. There seems to be a minor offset from first image/LiDAR timestamps (0.14s), so for the jrdb_scan_publisher.py, frame has to be somewhat lowered (e.g. from 14.77 to 14.4) to get camera/LiDAR to match although this isn't true and will drift over time. Visual confirmation shows the LiDAR/camera match better with both being played back from the same bag. It also requires the global frame to be `lower_velodyne_frame`. Also note right now tf has inconsistent transforms. 
+
+### Running on the Jackal
+First, confirm the following steps are made:
+
+1. The laptop is connected to the Jackal_AP (password: clearpath)
+2. Both laptop/robot have same ROS_DOMAIN_ID (0), cyclonedds (with the xml sourced), and ROS_LOCALHOST_ONLY is disabled
+3. Disable firewall for both with `sudo ufw disable`
+4. Restart daemon for both if necessary to make changes. 
+
+Run the dr_spaam_ros2_node (can use the JRDB launch file for now) with the following changes:
+
+1. In params.yaml, change the scan_topic to "/j100_0565/sensors/lidar3d_0/scan"
+2. rviz remap; run it with: `rviz2 --ros-args -r /tf:=/j100_0565/tf -r /tf_static:=/j100_0565/tf_static`
+
+### Converting from ROS1 bag to ROS2 bag:
+
+Use ```ros1bag_to_ros2bag.py``` under tools to convert, with the default topics to convert being lower velodyne, camera, camera info, odom from EKF, and tf
+
+```
+python3 ros1bag_to_ros2bag.py ~/Documents/JRDB/train_dataset_with_activity/rosbags/bytes-cafe-2019-02-07_0.bag -o ~/Documents/JRDB/ros2bags/
+```
+- Note that velodynes are large, at about 6.3MB/s, so a typical bag will be 1GB. Only use this for playing back the velodyne topic at the bag rate.
 
 ### Other Notes
 Override the defaults by exporting before sourcing: `DRS_ROS_DISTRO`, `DRS_REPO`, `DRS_WS`,

@@ -129,8 +129,8 @@ Visualization Manager:
         Depth: 2
         Durability Policy: Volatile
         History Policy: Keep Last
-        Reliability Policy: Best Effort
-        Value: /camera/image
+        Reliability Policy: Reliable #Best Effort
+        Value: /gad/annotated_image #/camera/image
       Value: true
     - Class: rviz_default_plugins/TF
       Enabled: true
@@ -155,7 +155,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: base_link
+    Fixed Frame: lower_velodyne_frame #base_link
     Frame Rate: 30
   Name: root
   Tools:

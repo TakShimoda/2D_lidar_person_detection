@@ -28,7 +28,7 @@ def generate_launch_description():
     # Launch argument for bag file
     bag_arg = DeclareLaunchArgument(
         'bag_file',
-        default_value='bytes-cafe-2019-02-07_0', #'memorial-court-2019-03-16_0',
+        default_value='bytes-cafe-2019-02-07_0', #'memorial-court-2019-03-16_0'
         description='Bag file to play'
     )
     bag_arg_val = LaunchConfiguration('bag_file')
@@ -65,7 +65,6 @@ def generate_launch_description():
         name='rviz2',
         output='screen',
         arguments=['-d', os.path.expanduser('~/Documents/VPT_ws/install/dr_spaam_ros2/share/dr_spaam_ros2/config/dr_spaam.rviz')]
-                   #'--ros-args', '-r', '/tf:=/j100_0565/tf', '/tf_static:=/j100_0565/tf_static']
     )
 
     velodyne_node = Node(
@@ -78,7 +77,7 @@ def generate_launch_description():
             ('scan', '/scan')
         ],
         parameters=[{
-            'ring': 8,
+            'ring': 7,
             'resolution': 0.00576
             # 'calibration': os.path.join(get_package_share_directory('velodyne_laserscan'), 'params', 'VLP16db.yaml'),
             # 'min_range': 0.3,
@@ -121,7 +120,7 @@ def generate_launch_description():
         dr_spaam_node,
         rviz_node,
         velodyne_node,
-        sick_laser_publisher,
-        #vlp_laser_publisher,
+        #sick_laser_publisher,
+        #+vlp_laser_publisher,
         img_publisher
     ])

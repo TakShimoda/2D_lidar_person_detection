@@ -1,11 +1,13 @@
 import numpy as np
 import rclpy
 from rclpy.node import Node
+import time
 
 from sensor_msgs.msg import LaserScan, PointCloud2, PointField
 from sensor_msgs_py import point_cloud2
 from geometry_msgs.msg import Point, Pose, PoseArray
-from visualization_msgs.msg import Marker
+from visualization_msgs.msg import Marker, MarkerArray
+from builtin_interfaces.msg import Duration
 
 from dr_spaam.detector import Detector
 
@@ -65,6 +67,7 @@ class DrSpaamROS2(Node):
         self.get_logger().info(f"Node initialized. Subscribed to topic: {self.scan_topic}")
 
     def _scan_callback(self, msg):
+        t0 = time.time()
         # Configure FOV on the first received scan message
         if not self._detector.is_ready():
             fov_rad = msg.angle_increment * len(msg.ranges)
@@ -107,6 +110,9 @@ class DrSpaamROS2(Node):
         inst_msg = self.instances_to_point_cloud(
             scan, scan_phi, instance_mask, kept_inds, msg.header)
         self._inst_pub.publish(inst_msg)
+        self.get_logger().info(f"""DR-SPAAM: took 
+                {time.time()-t0} seconds
+                """)
 
     def instances_to_point_cloud(self, scan, scan_phi, instance_mask, kept_inds, header):
         """The scan points that voted for each surviving detection.
